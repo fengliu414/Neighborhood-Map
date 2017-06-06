@@ -1,5 +1,6 @@
 # Neighborhood-Map
 <br>
+
 ## Project General Information
 This single page application shows the coffee shops in the city of Mountain View in California. This application uses knockout.js organizational library with jQuery to implement the functionalities. All the coffee shops in the area is stored in the data model by default. However, user can apply filters to the list view to show their desired coffee shop.
 <br>
