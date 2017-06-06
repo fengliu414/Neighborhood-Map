@@ -291,8 +291,32 @@ function getPlacesDetails(marker, infowindow) {
         innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
             {maxHeight: 100, maxWidth: 200}) + '">';
       }
+      innerHTML += '<br><br><div>Coffee & Health:</div>'
+      innerHTML += '<ul id="nyt-articles"></ul>';
       innerHTML += '</div>';
       infowindow.setContent(innerHTML);
+      var $nytElem = $('#nyt-articles');
+
+      var url = "https://api.nytimes.com/svc/search/v2/articlesearch.json";
+      url += '?' + $.param({
+        'api-key': "4b209244d60f490bb3a24f8e1b35f1e6",
+        'q': "coffee health"
+      });
+      $.ajax({
+        url: url,
+        method: 'GET',
+      }).done(function(result) {
+        console.log(result);
+        articles = result.response.docs;
+        for (var i = 0; i < Math.min(articles.length, 5); i++) {
+          var article = articles[i];
+          $nytElem.append('<li><a href="' + article.web_url + '">' + article.headline.main +
+            '</a></li>');
+        }
+      }).fail(function(err) {
+        throw err;
+      });
+
       infowindow.open(map, marker);
       // Make sure the marker property is cleared if the infowindow is closed.
       infowindow.addListener('closeclick', function() {
