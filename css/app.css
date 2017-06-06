@@ -1,28 +1,39 @@
-html, body {
+html,
+body {
   font-family: Arial, sans-serif;
   height: 100%;
   margin: 0;
   padding: 0;
 }
+
+
 .container {
   height: 100%;
   position: relative;
 }
+
+
 input {
   font-size: 12px;
 }
+
+
 h1 {
   color: white;
   font-size: 22px;
   margin: 0 0 10px 0;
   text-align: center;
 }
+
+
 hr {
-  background: #D0D7D9;
+  background: #d0d7d9;
   height: 1px;
   margin: 20px 0 20px 0;
   border: none;
 }
+
+
 #map {
   bottom:0px;
   height: 100%;
@@ -30,6 +41,8 @@ hr {
   position: absolute;
   right: 0px;
 }
+
+
 .options-box {
   background: #333333;
   border: 1px solid #999;
@@ -40,22 +53,32 @@ hr {
   text-align: left;
   width: 340px;
 }
+
+
 #pano {
   width: 500px;
   height: 400px;
 }
+
+
 li {
   cursor: pointer;
   color: white;
 }
+
+
 li:hover {
-  color: #0000FF;
+  color: #0000ff;
 }
+
+
 #select-coffee {
   width: 70%;
   padding: 0;
   height: 20px;
 }
+
+
 #filter-coffee {
   width: 24%;
   padding: 0;
