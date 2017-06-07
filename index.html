@@ -8,7 +8,9 @@
   </head>
   <body>
     <div class="container">
-      <section class="options-box">
+      <button class="hamburger">&#9776;</button>
+      <button class="cross">&#735;</button>
+      <aside class="options-box">
         <h1>Mountain View's Coffee Shop</h1>
         <div class="filter-row">
           <input data-bind="value: filter, valueUpdate: 'afterkeydown'" id="select-coffee" type="text" placeholder="Coffee shop...">
@@ -19,9 +21,10 @@
         <ul data-bind="foreach: filteredCoffeeShopList">
           <li data-bind="text: title, attr: {id: id}, click: $root.selectedCoffeeShop, event: { mouseover: $root.mouse_over, mouseout: $root.mouse_out, click: $root.click }"></li>
         </ul>
-      </section>
+      </aside>
       <main id="map"></main>
     </div>
+    <script src="js/data/location.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="js/knockout-3.4.2.js"></script>
     <script src="js/app.js"></script>
