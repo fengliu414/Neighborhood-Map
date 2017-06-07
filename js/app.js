@@ -4,13 +4,41 @@ var map;
 var markers = [];
 var largeInfowindow;
 var innerHTML;
-
+var errorCode;
 // Style the markers a bit. This will be our listing marker icon.
 var defaultColor = '0091ff';
 // Create a "highlighted location" marker color for when the user
 // mouses over the marker.
 var highlightedColor = 'FFFF24';
 var activatedColor = '6600cc';
+
+var apiURL = 'https://api.foursquare.com/v2/venues/search?ll=';
+var foursquareClientID = 'PCAZPIZVA3YEKZDPIQFR23RLNBPRD2FUCPPZBXRRXQYHDZQM'
+var foursquareSecret ='0W3NQ5CHYEAT3ID4BSYNBKLGAPF1OUNWONXQ1VXGJ0NNGMAS';
+var foursquareVersion = '20170112';
+var ajaxContents = new Array();
+
+function getAjaxContent() {
+  for (var i = 0; i < locations.length; i++) {
+    // Get the position from the location array.
+    var lat = locations[i].location.lat;
+    var lng = locations[i].location.lng;
+    var foursquareURL = apiURL + lat + ',' + lng + '&client_id=' +
+    foursquareClientID +  '&client_secret=' + foursquareSecret +'&v=' + foursquareVersion;
+    $.ajax({
+      url: foursquareURL,
+      success: function(data) {
+        ajaxContent = {};
+        ajaxContent['phone'] = data.response.venues[0].contact.formattedPhone;
+        ajaxContent['users'] = data.response.venues[0].stats.usersCount;
+        ajaxContent['url'] = data.response.venues[0].url;
+        ajaxContents.push(ajaxContent);
+      }
+    }).fail(function(err) {
+      window.vm.errorCode('Data from Foursquare API cannot be loaded');
+    });
+  }
+}
 
 // These are the real estate listings that will be shown to the user.
 // Normally we'd have these in a database instead.
@@ -41,7 +69,12 @@ var locations = [
    id: '11'}
 ];
 
-var coffeeshop = function(data) {
+// maps loading error handling
+function mapError() {
+  alert("Could not load Google Maps");
+};
+
+var coffeeShop = function(data) {
   var self = this;
   self.title = data.title;
   self.location = data.location;
@@ -53,25 +86,26 @@ var ViewModel = function() {
   var self = this;
   self.markers = markers;
   self.ismaploaded = false;
+  self.errorCode = ko.observable();
 
-  self.selectedCoffeeshop = function(coffeeshop) {
-    populateInfoWindow(self.markers[coffeeshop.id], largeInfowindow);
+  self.selectedCoffeeShop = function(coffeeShop) {
+    populateInfoWindow(self.markers[coffeeShop.id], largeInfowindow, coffeeShop.id);
   };
-  self.click = function(coffeeshop) {
-    self.markers[coffeeshop.id].setIcon(makeMarkerIcon(activatedColor));
-  };
-
-  self.mouse_over = function(coffeeshop) {
-    self.markers[coffeeshop.id].setIcon(makeMarkerIcon(highlightedColor));
+  self.click = function(coffeeShop) {
+    self.markers[coffeeShop.id].setIcon(makeMarkerIcon(activatedColor));
   };
 
-  self.mouse_out = function(coffeeshop) {
-    self.markers[coffeeshop.id].setIcon(makeMarkerIcon(defaultColor));
+  self.mouse_over = function(coffeeShop) {
+    self.markers[coffeeShop.id].setIcon(makeMarkerIcon(highlightedColor));
   };
 
-  self.coffeeshopList = ko.observableArray([]);
-  locations.forEach(function(coffeeshopItem){
-    self.coffeeshopList.push( new coffeeshop(coffeeshopItem) );
+  self.mouse_out = function(coffeeShop) {
+    self.markers[coffeeShop.id].setIcon(makeMarkerIcon(defaultColor));
+  };
+
+  self.coffeeShopList = ko.observableArray([]);
+  locations.forEach(function(coffeeShopItem){
+    self.coffeeShopList.push( new coffeeShop(coffeeShopItem) );
   });
 
   self.filter = ko.observable();
@@ -82,15 +116,15 @@ var ViewModel = function() {
   }
 
   //filter the items using the filter text
-  self.filteredCoffeeshopList = ko.computed(function() {
+  self.filteredCoffeeShopList = ko.computed(function() {
     var filter = self.filter();
     if (!filter) {
         if (self.ismaploaded) {
           searchWithinFilter();
         }
-        return self.coffeeshopList();
+        return self.coffeeShopList();
     } else {
-        return ko.utils.arrayFilter(self.coffeeshopList(), function(item) {
+        return ko.utils.arrayFilter(self.coffeeShopList(), function(item) {
             searchWithinFilter();
             self.ismaploaded = true;
             return item.title.toLowerCase().indexOf(filter.toLowerCase()) > -1;
@@ -110,6 +144,7 @@ function initMap() {
     mapTypeControl: false
   });
   maploaded = true;
+  getAjaxContent();
   var defaultIcon = makeMarkerIcon(defaultColor);
   largeInfowindow = new google.maps.InfoWindow();
 
@@ -132,10 +167,12 @@ function initMap() {
     markers.push(marker);
 
     // Create an onclick event to open the large infowindow at each marker.
-    marker.addListener('click', function() {
-      this.setIcon(makeMarkerIcon(activatedColor));
-      populateInfoWindow(this, largeInfowindow);
-    });
+    marker.addListener('click', (function(iCopy) {
+      return function() {
+        this.setIcon(makeMarkerIcon(activatedColor));
+        populateInfoWindow(this, largeInfowindow, iCopy);
+      };
+    })(i));
     // Two event listeners - one for mouseover, one for mouseout,
     // to change the colors back and forth.
     marker.addListener('mouseover', function() {
@@ -171,7 +208,7 @@ function hideMarkers() {
 // This function populates the infowindow when the marker is clicked. We'll only allow
 // one infowindow which will open at the marker that is clicked, and populate based
 // on that markers position.
-function populateInfoWindow(marker, infowindow) {
+function populateInfoWindow(marker, infowindow, index) {
 
   // Check to make sure the infowindow is not already opened on this marker.
   if (infowindow.marker != marker) {
@@ -194,28 +231,25 @@ function populateInfoWindow(marker, infowindow) {
         var nearStreetViewLocation = data.location.latLng;
         var heading = google.maps.geometry.spherical.computeHeading(
           nearStreetViewLocation, marker.position);
-        getPlacesDetails(marker, infowindow);
-        innerHTML = '<div>' + marker.title + '</div><div id="pano"></div>' + innerHTML;
 
-        var url = "https://api.nytimes.com/svc/search/v2/articlesearch.json";
-        url += '?' + $.param({
-          'api-key': "4b209244d60f490bb3a24f8e1b35f1e6",
-          'q': "coffee health"
-        });
-        $.ajax({
-          url: url,
-          method: 'GET',
-        }).done(function(result) {
-          ajaxLoaded = true;
-          articles = result.response.docs;
-          for (var i = 0; i < Math.min(articles.length, 2); i++) {
-            var article = articles[i];
-            innerHTML += '<div><a href="' + article.web_url + '">' + article.headline.main +'</a></div>';
-          }
-        }).fail(function(err) {
-          ajaxLoaded = true;
-          throw err;
-        });
+        // Get detail from google place API asynchronously
+        getPlacesDetails(marker, infowindow);
+
+        if (innerHTML) {
+          innerHTML = '<div>' + marker.title + '</div><div id="pano"></div>' + innerHTML;
+        } else {
+          innerHTML = '<div>' + marker.title + '</div><div id="pano"></div>';
+        }
+
+        if (ajaxContents[index].url) {
+          innerHTML += '<div><a href="' + ajaxContents[index].url + '">Go to store website</a></div>';
+        }
+        if (ajaxContents[index].phone) {
+          innerHTML += '<div><strong>Phone:</strong>' + ajaxContents[index].phone + '</div>';
+        }
+        if (ajaxContents[index].users) {
+          innerHTML += '<div><strong>Overall customers have been to the store:</strong>' + ajaxContents[index].users + '</div>';
+        }
 
         infowindow.setContent(innerHTML);
 
@@ -288,7 +322,7 @@ function searchWithinFilter() {
 function zoomToArea(marker) {
     map.setCenter(marker.position);
     map.setZoom(15);
-  }
+}
 
 // This is the PLACE DETAILS search - it's the most detailed so it's only
 // executed when a marker is selected, indicating the user wants more
@@ -321,15 +355,20 @@ function getPlacesDetails(marker, infowindow) {
             place.opening_hours.weekday_text[5] + '<br>' +
             place.opening_hours.weekday_text[6];
       }
-
-      innerHTML += '<br><br><div>Coffee & Health:</div>';
-      innerHTML += '<ul id="nyt-articles"></ul>';
       innerHTML += '</div>';
-    } else {
-      console.log('a');
+    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+      errorCode = 'No details found for this place';
+    } else if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+      errorCode = 'Over query limit';
+    } else if (status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+      errorCode = 'Request denied';
+    } else if (status === google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+      errorCode = 'Required query parameter is missing';
     }
+    window.vm.errorCode(errorCode);
   });
 }
+
 
 window.vm = new ViewModel();
 ko.applyBindings(vm);
