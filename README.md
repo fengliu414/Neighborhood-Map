@@ -15,4 +15,4 @@ By cliking on the marker or place listed in list view, user can see panorama vie
 <br>
 
 #### Attribution: 
-This application used google map APIs and New York Times APIs as data source.
+This application used google map APIs and Foursquare APIs as data source.
