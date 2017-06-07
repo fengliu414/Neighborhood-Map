@@ -47,6 +47,11 @@ body {
 }
 
 
+.spacing {
+  height: 30px;
+}
+
+
 input {
   font-size: 12px;
 }
@@ -71,9 +76,10 @@ hr {
 #map {
   bottom:0px;
   height: 100%;
-  left: 26%;
+  left: 50px;
   position: absolute;
-  right: 0px;
+  right: 0;
+  z-index: 1;
 }
 
 
@@ -83,6 +89,7 @@ hr {
 
 
 .options-box {
+  position: relative;
   background: #333333;
   border: 1px solid #999;
   border-radius: 3px;
@@ -90,8 +97,15 @@ hr {
   line-height: 35px;
   padding: 10px 10px 30px 10px;
   text-align: left;
-  width: 25%;
-  overflow: scroll;
+  width: 260px;
+  z-index: 100000;
+}
+
+
+.initial-side {
+  background: #333333;
+  height: 100%;
+  width: 50px;
 }
 
 

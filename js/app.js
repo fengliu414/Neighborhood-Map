@@ -20,18 +20,27 @@ var ajaxContents = new Array();
 
 $( ".cross" ).hide();
 $( ".options-box" ).hide();
+
+// When the hamburger menu is clicked
 $( ".hamburger" ).click(function() {
-  $( ".options-box" ).slideToggle( "slow", function() {
-    $( ".hamburger" ).hide();
-    $( ".cross" ).show();
+  $( ".options-box" ).animate({width: 'toggle'});
+  $( ".initial-side" ).hide();
+  $( "#map" ) .animate({
+    'marginLeft' : "+=210px" //moves right
   });
+  $( ".cross" ).show();
+  $( ".hamburger" ).hide();
 });
 
+// When the hamburger menu is closed
 $( ".cross" ).click(function() {
-  $( ".options-box" ).slideToggle( "slow", function() {
-    $( ".cross" ).hide();
-    $( ".hamburger" ).show();
-  });
+  $( ".initial-side" ).show();
+  $( "#map" ) .animate({
+    'marginLeft' : "-=210px" //moves left
+  }, 80);
+  $( ".cross" ).hide();
+  $( ".hamburger" ).show();
+  $( ".options-box" ).animate({width: 'toggle'});
 });
 
 function getAjaxContent() {
@@ -76,6 +85,13 @@ var ViewModel = function() {
   self.errorCode = ko.observable();
 
   self.selectedCoffeeShop = function(coffeeShop) {
+    $( ".initial-side" ).show();
+    $( "#map" ) .animate({
+      'marginLeft' : "-=210px" //moves left
+    }, 80);
+    $( ".cross" ).hide();
+    $( ".hamburger" ).show();
+    $( ".options-box" ).animate({width: 'toggle'});
     populateInfoWindow(self.markers[coffeeShop.id], largeInfowindow, coffeeShop.id);
   };
   self.click = function(coffeeShop) {

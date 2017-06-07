@@ -10,11 +10,12 @@
     <div class="container">
       <button class="hamburger">&#9776;</button>
       <button class="cross">&#735;</button>
+      <aside class="initial-side"></aside>
       <aside class="options-box">
+        <div class="spacing"></div>
         <h1>Mountain View's Coffee Shop</h1>
         <div class="filter-row">
-          <input data-bind="value: filter, valueUpdate: 'afterkeydown'" id="select-coffee" type="text" placeholder="Coffee shop...">
-          <input data-bind="click: $root.applyFilter" id="filter-coffee" type="button" value="Filter">
+          <input data-bind="value: filter, valueUpdate: 'afterkeydown'" id="select-coffee" type="text" placeholder="Coffee shop..."><input data-bind="click: $root.applyFilter" id="filter-coffee" type="button" value="Filter">
         </div>
         <div data-bind="text: errorCode" class="errorCode"></div>
         <hr>
@@ -23,6 +24,7 @@
         </ul>
       </aside>
       <main id="map"></main>
+      <div id="moved-map"></div>
     </div>
     <script src="js/data/location.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
