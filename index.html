@@ -12,11 +12,11 @@
         <h1>Mountain View's Coffee Shop</h1>
         <div>
           <input data-bind="value: filter, valueUpdate: 'afterkeydown'" id="select-coffee" type="text" placeholder="Coffee shop...">
-          <input id="filter-coffee" type="button" value="Filter">
+          <input data-bind="click: $root.applyFilter" id="filter-coffee" type="button" value="Filter">
         </div>
         <hr>
         <ul data-bind="foreach: filteredCoffeeshopList">
-          <li data-bind="text: title, attr: {id: id}, click: $root.selectedCoffeeshop, event: { mouseover: $root.mouse_over, mouseout: $root.mouse_out }"></li>
+          <li data-bind="text: title, attr: {id: id}, click: $root.selectedCoffeeshop, event: { mouseover: $root.mouse_over, mouseout: $root.mouse_out, click: $root.click }"></li>
         </ul>
       </div>
       <div id="map"></div>

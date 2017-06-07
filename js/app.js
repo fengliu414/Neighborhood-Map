@@ -3,6 +3,15 @@ var map;
 // Create a new blank array for all the listing markers.
 var markers = [];
 var largeInfowindow;
+var innerHTML;
+
+// Style the markers a bit. This will be our listing marker icon.
+var defaultColor = '0091ff';
+// Create a "highlighted location" marker color for when the user
+// mouses over the marker.
+var highlightedColor = 'FFFF24';
+var activatedColor = '6600cc';
+
 // These are the real estate listings that will be shown to the user.
 // Normally we'd have these in a database instead.
 var locations = [
@@ -48,12 +57,16 @@ var ViewModel = function() {
   self.selectedCoffeeshop = function(coffeeshop) {
     populateInfoWindow(self.markers[coffeeshop.id], largeInfowindow);
   };
+  self.click = function(coffeeshop) {
+    self.markers[coffeeshop.id].setIcon(makeMarkerIcon(activatedColor));
+  };
+
   self.mouse_over = function(coffeeshop) {
-    self.markers[coffeeshop.id].setIcon(makeMarkerIcon('FFFF24'));
+    self.markers[coffeeshop.id].setIcon(makeMarkerIcon(highlightedColor));
   };
 
   self.mouse_out = function(coffeeshop) {
-    self.markers[coffeeshop.id].setIcon(makeMarkerIcon('0091ff'));
+    self.markers[coffeeshop.id].setIcon(makeMarkerIcon(defaultColor));
   };
 
   self.coffeeshopList = ko.observableArray([]);
@@ -62,6 +75,11 @@ var ViewModel = function() {
   });
 
   self.filter = ko.observable();
+  self.applyFilter = function() {
+    if (self.ismaploaded) {
+      searchWithinFilter();
+    }
+  }
 
   //filter the items using the filter text
   self.filteredCoffeeshopList = ko.computed(function() {
@@ -92,14 +110,8 @@ function initMap() {
     mapTypeControl: false
   });
   maploaded = true;
-
+  var defaultIcon = makeMarkerIcon(defaultColor);
   largeInfowindow = new google.maps.InfoWindow();
-
-  // Style the markers a bit. This will be our listing marker icon.
-  var defaultIcon = makeMarkerIcon('0091ff');
-  // Create a "highlighted location" marker color for when the user
-  // mouses over the marker.
-  var highlightedIcon = makeMarkerIcon('FFFF24');
 
   // The following group uses the location array to create an array of markers on initialize.
   for (var i = 0; i < locations.length; i++) {
@@ -121,22 +133,19 @@ function initMap() {
 
     // Create an onclick event to open the large infowindow at each marker.
     marker.addListener('click', function() {
+      this.setIcon(makeMarkerIcon(activatedColor));
       populateInfoWindow(this, largeInfowindow);
     });
     // Two event listeners - one for mouseover, one for mouseout,
     // to change the colors back and forth.
     marker.addListener('mouseover', function() {
-      this.setIcon(highlightedIcon);
+      this.setIcon(makeMarkerIcon(highlightedColor));
     });
     marker.addListener('mouseout', function() {
-      this.setIcon(defaultIcon);
+      this.setIcon(makeMarkerIcon(defaultColor));
     });
   }
   showListings();
-
-  document.getElementById('filter-coffee').addEventListener('click', function() {
-    searchWithinFilter();
-  });
 }
 
 // This function will loop through the markers array and display them all.
@@ -144,16 +153,19 @@ function showListings() {
   var bounds = new google.maps.LatLngBounds();
   // Extend the boundaries of the map for each marker and display the marker
   for (var i = 0; i < markers.length; i++) {
-    markers[i].setMap(map);
+    markers[i].setMap(map)
+    markers[i].setVisible(true);
     bounds.extend(markers[i].position);
   }
-  map.fitBounds(bounds);
+  google.maps.event.addDomListener(window, 'resize', function() {
+    map.fitBounds(bounds); // `bounds` is a `LatLngBounds` object
+  });
 }
 
 // This function will loop through the listings and hide them all.
 function hideMarkers() {
   for (var i = 0; i < markers.length; i++) {
-    markers[i].setMap(null);
+    markers[i].setVisible(false);
   }
 }
 // This function populates the infowindow when the marker is clicked. We'll only allow
@@ -177,27 +189,45 @@ function populateInfoWindow(marker, infowindow) {
     // position of the streetview image, then calculate the heading, then get a
     // panorama from that and set the options
     function getStreetView(data, status) {
+      var ajaxLoaded = false;
       if (status == google.maps.StreetViewStatus.OK) {
         var nearStreetViewLocation = data.location.latLng;
         var heading = google.maps.geometry.spherical.computeHeading(
           nearStreetViewLocation, marker.position);
-          infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div><div><input id="place-detail" type="button" value="See Detail"></div>');
-          var panoramaOptions = {
-            position: nearStreetViewLocation,
-            pov: {
-              heading: heading,
-              pitch: 10
-            }
-          };
+        getPlacesDetails(marker, infowindow);
+        innerHTML = '<div>' + marker.title + '</div><div id="pano"></div>' + innerHTML;
+
+        var url = "https://api.nytimes.com/svc/search/v2/articlesearch.json";
+        url += '?' + $.param({
+          'api-key': "4b209244d60f490bb3a24f8e1b35f1e6",
+          'q': "coffee health"
+        });
+        $.ajax({
+          url: url,
+          method: 'GET',
+        }).done(function(result) {
+          ajaxLoaded = true;
+          articles = result.response.docs;
+          for (var i = 0; i < Math.min(articles.length, 2); i++) {
+            var article = articles[i];
+            innerHTML += '<div><a href="' + article.web_url + '">' + article.headline.main +'</a></div>';
+          }
+        }).fail(function(err) {
+          ajaxLoaded = true;
+          throw err;
+        });
+
+        infowindow.setContent(innerHTML);
+
+        var panoramaOptions = {
+          position: nearStreetViewLocation,
+          pov: {
+            heading: heading,
+            pitch: 10
+          }
+        };
         var panorama = new google.maps.StreetViewPanorama(
           document.getElementById('pano'), panoramaOptions);
-
-        document.getElementById('place-detail').addEventListener('click', (function(markerCopy) {
-          return function() {
-            getPlacesDetails(marker, infowindow);
-          };
-        })(marker));
-
       } else {
         infowindow.setContent('<div>' + marker.title + '</div>' +
           '<div>No Street View Found</div>');
@@ -208,6 +238,11 @@ function populateInfoWindow(marker, infowindow) {
     streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
     // Open the infowindow on the correct marker.
     infowindow.open(map, marker);
+
+    // Make sure the marker property is cleared if the infowindow is closed.
+    infowindow.addListener('closeclick', function() {
+      infowindow.marker = null;
+    });
   }
 }
 
@@ -232,8 +267,8 @@ function searchWithinFilter() {
   var bounds = new google.maps.LatLngBounds();
   var atleastOne = false;
   for (var i = 0; i < markers.length; i++) {
-    var name = document.getElementById('select-coffee').value;
-    if (markers[i].title.toLowerCase().indexOf(name.toLowerCase()) != -1) {
+    var filter = window.vm.filter();
+    if (markers[i].title.toLowerCase().indexOf(filter.toLowerCase()) != -1) {
       markers[i].setMap(map);
       bounds.extend(markers[i].position);
       atleastOne = true;
@@ -246,7 +281,6 @@ function searchWithinFilter() {
   } else {
     map.setCenter({lat:lat, lng:lng});
   }
-
 }
 // This function takes the input value in the find nearby area text input
 // locates it, and then zooms into that area. This is so that the user can
@@ -267,7 +301,7 @@ function getPlacesDetails(marker, infowindow) {
     if (status === google.maps.places.PlacesServiceStatus.OK) {
       // Set the marker property on this infowindow so it isn't created again.
       infowindow.marker = marker;
-      var innerHTML = '<div>';
+      innerHTML = '<div>';
       if (place.name) {
         innerHTML += '<strong>' + place.name + '</strong>';
       }
@@ -287,43 +321,16 @@ function getPlacesDetails(marker, infowindow) {
             place.opening_hours.weekday_text[5] + '<br>' +
             place.opening_hours.weekday_text[6];
       }
-      if (place.photos) {
-        innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
-            {maxHeight: 100, maxWidth: 200}) + '">';
-      }
-      innerHTML += '<br><br><div>Coffee & Health:</div>'
+
+      innerHTML += '<br><br><div>Coffee & Health:</div>';
       innerHTML += '<ul id="nyt-articles"></ul>';
       innerHTML += '</div>';
-      infowindow.setContent(innerHTML);
-      var $nytElem = $('#nyt-articles');
-
-      var url = "https://api.nytimes.com/svc/search/v2/articlesearch.json";
-      url += '?' + $.param({
-        'api-key': "4b209244d60f490bb3a24f8e1b35f1e6",
-        'q': "coffee health"
-      });
-      $.ajax({
-        url: url,
-        method: 'GET',
-      }).done(function(result) {
-        console.log(result);
-        articles = result.response.docs;
-        for (var i = 0; i < Math.min(articles.length, 5); i++) {
-          var article = articles[i];
-          $nytElem.append('<li><a href="' + article.web_url + '">' + article.headline.main +
-            '</a></li>');
-        }
-      }).fail(function(err) {
-        throw err;
-      });
-
-      infowindow.open(map, marker);
-      // Make sure the marker property is cleared if the infowindow is closed.
-      infowindow.addListener('closeclick', function() {
-        infowindow.marker = null;
-      });
+    } else {
+      console.log('a');
     }
   });
 }
-ko.applyBindings(new ViewModel());
+
+window.vm = new ViewModel();
+ko.applyBindings(vm);
 
